@@ -15,8 +15,7 @@
         if (id) bookieMap[id] = name;
     });
 
-    // 2. Buscar las filas de apuestas por clase genérica si el testid falla
-    // Buscamos cualquier fila que parezca una fila de cuotas
+    // 2. Buscar las filas de apuestas
     let rows = Array.from(document.querySelectorAll('[class*="BetRow"]'));
     
     // Si no hay filas por clase, intentamos por estructura de tabla
@@ -24,23 +23,27 @@
         rows = Array.from(document.querySelectorAll('tr')).filter(tr => tr.querySelector('[data-bk]'));
     }
 
-    // Filtrar solo las 3 primeras que tengan contenido (Local, Empate, Visitante)
+    // Mapeo automático basado en la posición de la fila: 
+    // Primera fila válida = "1", Segunda = "X", Tercera = "2"
+    const mapeoApuesta = {
+        0: "1",
+        1: "X",
+        2: "2"
+    };
+
     let filasProcesadas = 0;
 
     rows.forEach(row => {
         if (filasProcesadas >= 3) return;
 
-        // Intentar sacar el nombre de la selección (Local, Empate o Visitante)
-        const nameEl = row.querySelector('[data-testid="grid-bet"]') || 
-                       row.querySelector('.bet-name') || 
-                       row.firstElementChild;
-        
-        const selectionName = nameEl ? nameEl.innerText.trim() : null;
-        if (!selectionName || selectionName === "") return;
-
+        // Validamos que la fila tenga celdas de cuotas operativas
         const cells = row.querySelectorAll('[data-bk]');
         if (cells.length > 0) {
+            
+            // Asignamos la etiqueta 1, X o 2 según el número de fila que estemos procesando
+            const etiquetaApuesta = mapeoApuesta[filasProcesadas];
             filasProcesadas++;
+
             cells.forEach(cell => {
                 const bookieId = cell.getAttribute('data-bk');
                 const quota = cell.innerText.trim();
@@ -48,7 +51,7 @@
                 if (quota && quota !== '-' && quota !== 'SP') {
                     data.push({
                         "Fecha_Dato": timestampCSV,
-                        "Seleccion": selectionName,
+                        "Seleccion": etiquetaApuesta, // Aquí ahora inyecta "1", "X" o "2"
                         "Casa": bookieMap[bookieId] || bookieId,
                         "Cuota": quota.replace('.', ','),
                         "Tendencia": cell.parentElement.className.includes('Drifting') ? 'Bajando' : 
@@ -77,5 +80,5 @@
     link.download = nombreArchivo;
     link.click();
 
-    console.log(`✅ ¡Éxito! Archivo: ${nombreArchivo}`);
+    console.log(`✅ ¡Éxito! Archivo generado con formato 1X2: ${nombreArchivo}`);
 })();
